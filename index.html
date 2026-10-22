@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#05070b" />
+  <meta name="description" content="DJI Osmo Action 4 交互式 3D 结构拆解可视化 — 使用 Three.js 程序化构建" />
+  <title>OSMO ACTION 4 — Interactive Teardown</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- Loading curtain -->
+  <div class="preloader" id="preloader" aria-hidden="true">
+    <div class="loader-topline"><span>DJI // TEARDOWN LAB</span><span>OA4—3D</span></div>
+    <div class="loader-core">
+      <div class="loader-orbit loader-orbit-a"></div>
+      <div class="loader-orbit loader-orbit-b"></div>
+      <div class="loader-aperture">
+        <span></span><span></span><span></span>
+        <i></i>
+      </div>
+    </div>
+    <div class="loader-title">OSMO ACTION <b>4</b></div>
+    <div class="loader-sub">STRUCTURAL &amp; OPTICAL DISASSEMBLY</div>
+    <div class="loader-progress"><i id="loaderBar"></i></div>
+    <div class="loader-meta"><span>INITIALIZING MODEL</span><span id="loaderPct">000%</span></div>
+  </div>
+
+  <!-- WebGL -->
+  <canvas id="scene" aria-label="DJI Osmo Action 4 三维拆解模型"></canvas>
+
+  <!-- Atmosphere -->
+  <div class="atmosphere" aria-hidden="true">
+    <div class="aurora aurora-a"></div>
+    <div class="aurora aurora-b"></div>
+    <div class="bg-grid"></div>
+    <div class="scanlines"></div>
+    <div class="noise"></div>
+    <div class="vignette"></div>
+  </div>
+
+  <!-- Technical frame -->
+  <div class="hud-frame" aria-hidden="true">
+    <span class="corner c-tl"></span><span class="corner c-tr"></span>
+    <span class="corner c-bl"></span><span class="corner c-br"></span>
+    <span class="frame-line frame-line-top"></span>
+    <span class="frame-line frame-line-bottom"></span>
+    <span class="side-caption side-caption-left">OPTICAL / MECHANICAL / THERMAL</span>
+    <span class="side-caption side-caption-right">TEARDOWN SEQUENCE · 09 MODULES</span>
+  </div>
+
+  <!-- Header -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 44 44" fill="none">
+          <circle cx="22" cy="22" r="17.5" stroke="currentColor" stroke-width="1"/>
+          <circle cx="22" cy="22" r="9.5" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3"/>
+          <path d="M22 4.5V13M22 31v8.5M4.5 22H13M31 22h8.5" stroke="currentColor" stroke-width="1"/>
+          <circle cx="22" cy="22" r="3.2" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="brand-copy">
+        <div class="brand-kicker"><span>DJI</span><i></i>STRUCTURAL TEARDOWN LAB</div>
+        <h1>OSMO ACTION <b>4</b></h1>
+      </div>
+    </div>
+
+    <div class="top-status" aria-label="系统状态">
+      <div class="live-chip"><span class="live-dot"></span>LIVE MODEL</div>
+      <div class="status-scale">
+        <span>SCALE 1:1</span><i></i><span>YAW 034.2°</span><i></i><span>PBR / REAL-TIME</span>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <button class="icon-btn" id="helpBtn" type="button" aria-label="打开操作指南" data-tip="操作指南">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4.1 1.9c-.9.7-1.7 1.2-1.7 2.5"/><path d="M12 17.3v.1" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" id="fullscreenBtn" type="button" aria-label="切换全屏" data-tip="全屏">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8.5 4H4v4.5M15.5 4H20v4.5M8.5 20H4v-4.5M15.5 20H20v-4.5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Component index -->
+  <aside class="panel panel-left" id="leftPanel" aria-label="部件清单">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">COMPONENT MATRIX</p>
+        <h2>部件清单 <span>/ 09</span></h2>
+      </div>
+      <span class="panel-code">A4—01</span>
+    </div>
+    <div class="parts-progress">
+      <span class="progress-label">ASSEMBLY INTEGRITY</span>
+      <div class="progress-track"><i></i></div>
+      <span class="progress-value">100%</span>
+    </div>
+    <div class="parts-scroll">
+      <div class="parts-list" id="partsList" role="list"></div>
+    </div>
+    <div class="core-specs">
+      <div class="core-specs-head"><span>CORE SPECS</span><span>官方参数</span></div>
+      <div class="core-grid">
+        <div><span>重量</span><strong>145<em>g</em></strong></div>
+        <div><span>防水</span><strong>18<em>m</em></strong></div>
+        <div><span>视频</span><strong>4K<em>/120</em></strong></div>
+        <div><span>续航</span><strong>160<em>min</em></strong></div>
+        <div><span>传感器</span><strong>1/1.3<em>″</em></strong></div>
+        <div><span>存储</span><strong>512<em>GB</em></strong></div>
+      </div>
+    </div>
+    <div class="panel-foot">
+      <span class="foot-dot"></span>DRAG · ORBIT&nbsp;&nbsp;<span class="foot-dot"></span>SCROLL · ZOOM
+    </div>
+    <button class="sheet-close mobile-only" data-close-sheet type="button" aria-label="关闭部件清单">×</button>
+  </aside>
+
+  <!-- Inspector -->
+  <aside class="panel panel-right" id="rightPanel" aria-label="部件详情">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">COMPONENT INSPECTOR</p>
+        <h2>部件详情 <span>/ DETAIL</span></h2>
+      </div>
+      <span class="live-chip small"><span class="live-dot"></span>ACTIVE</span>
+    </div>
+    <div class="inspector-scroll" id="inspectorScroll">
+      <div class="inspector-hero">
+        <span class="big-index" id="detailNum">02</span>
+        <p class="part-category" id="detailCategory">OPTICAL SYSTEM / 光学系统</p>
+        <h3 id="detailTitle">超广角镜头组</h3>
+        <p class="part-en" id="detailEn">ULTRA-WIDE LENS MODULE</p>
+        <div class="accent-rule"><i></i></div>
+      </div>
+      <div class="spec-grid" id="detailSpecs"></div>
+      <p class="part-desc" id="detailDesc"></p>
+      <div class="part-meta">
+        <span>ASSEMBLY <b id="detailAssembly">A4-LNS-02</b></span>
+        <span>STATE <b class="ok">NOMINAL</b></span>
+      </div>
+      <div class="detail-actions">
+        <button class="action-btn primary" id="focusBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+          定位部件
+        </button>
+        <button class="action-btn ghost" id="clearBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 5l14 14M19 5 5 19"/></svg>
+          取消选择
+        </button>
+      </div>
+    </div>
+    <button class="sheet-close mobile-only" data-close-sheet type="button" aria-label="关闭部件详情">×</button>
+  </aside>
+
+  <!-- 3D callouts -->
+  <div class="labels-layer" id="labelsLayer" aria-hidden="false">
+    <svg class="leader-svg" id="leaderSvg" aria-hidden="true"></svg>
+    <div id="callouts"></div>
+  </div>
+
+  <!-- Cursor tooltip -->
+  <div class="cursor-tip" id="cursorTip">
+    <span class="cursor-tip-idx">02</span>
+    <span><b>超广角镜头组</b><small>CLICK TO INSPECT</small></span>
+  </div>
+
+  <!-- Mobile current part -->
+  <button class="mobile-part-chip mobile-only" id="mobilePartChip" type="button">
+    <span>02</span><b>超广角镜头组</b><i>查看详情</i>
+  </button>
+
+  <!-- Controls -->
+  <div class="hint-strip" aria-hidden="true">
+    <span class="mouse-glyph"></span>
+    <span>拖拽旋转</span><i></i><span>滚轮缩放</span><i></i><span>点击部件拆解</span>
+  </div>
+
+  <div class="controls-dock" id="dock">
+    <button class="explode-btn" id="explodeBtn" type="button">
+      <span class="explode-icon" aria-hidden="true">
+        <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.4">
+          <path d="M14 3.5 23 8.5v11l-9 5-9-5v-11l9-5Z"/>
+          <path d="M14 14 5 9M14 14l9-5M14 14v10" stroke-dasharray="2 2"/>
+          <path d="m7.5 19.5 6-3.5v-5" opacity=".6"/>
+        </svg>
+      </span>
+      <span class="explode-copy"><small>TEARDOWN</small><b id="explodeBtnText">一键拆解</b></span>
+    </button>
+
+    <div class="slider-block">
+      <div class="slider-top"><span>EXPLODE SEQUENCE</span><strong id="explodeVal">00<em>%</em></strong></div>
+      <input id="explodeRange" type="range" min="0" max="100" value="0" step="1" aria-label="拆解程度" />
+      <div class="slider-ticks" aria-hidden="true"><span>00</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+    </div>
+
+    <div class="dock-sep" aria-hidden="true"></div>
+
+    <div class="dock-mini">
+      <button class="tool-btn active" id="labelsBtn" type="button" aria-label="显示或隐藏标注" data-tip="显示标注">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M20 13.5 13.5 20a2.1 2.1 0 0 1-3 0L3 12.5V3h9.5L20 10.5a2.1 2.1 0 0 1 0 3Z"/><circle cx="8" cy="8" r="1.3"/></svg>
+      </button>
+      <button class="tool-btn" id="rotateBtn" type="button" aria-label="自动旋转" data-tip="自动旋转">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M20 7v5h-5"/><path d="M19.3 12a7.5 7.5 0 1 1-2-5.1L20 9.5"/></svg>
+      </button>
+      <button class="tool-btn" id="resetBtn" type="button" aria-label="重置视角与拆解" data-tip="重置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 9V4h5"/><path d="M4.8 8.9a7.5 7.5 0 1 1-.2 5"/></svg>
+      </button>
+      <button class="tool-btn mobile-only" id="mobilePartsBtn" type="button" aria-label="打开部件清单" data-tip="部件清单">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      </button>
+      <button class="tool-btn mobile-only" id="mobileInfoBtn" type="button" aria-label="打开部件详情" data-tip="部件详情">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
+
+  <!-- Guide -->
+  <div class="modal" id="guideModal" role="dialog" aria-modal="true" aria-labelledby="guideTitle" aria-hidden="true">
+    <div class="modal-card">
+      <button class="modal-close" id="guideClose" type="button" aria-label="关闭指南">×</button>
+      <p class="eyebrow">OPERATION MANUAL · OA4</p>
+      <h2 id="guideTitle">拆解操作指南</h2>
+      <p class="modal-lead">一台为极限而生的相机，也可以被拆解成一套精密的结构图谱。用鼠标或手指探索它的每一个模块。</p>
+      <div class="guide-grid">
+        <div class="guide-step"><span>01</span><div class="guide-glyph orbit"></div><h3>旋转观察</h3><p>拖拽画面自由环绕机身，从任意角度审视结构。</p></div>
+        <div class="guide-step"><span>02</span><div class="guide-glyph zoom"></div><h3>缩放细节</h3><p>滚轮或双指缩放，靠近观察镜组与屏幕工艺。</p></div>
+        <div class="guide-step"><span>03</span><div class="guide-glyph explode"></div><h3>点击拆解</h3><p>点击任意部件或清单条目，触发分层拆解动画。</p></div>
+        <div class="guide-step"><span>04</span><div class="guide-glyph reset"></div><h3>复位视角</h3><p>使用底部复位按钮，让整机回到装配状态。</p></div>
+      </div>
+      <div class="shortcuts">
+        <span><kbd>SPACE</kbd> 拆解 / 组装</span>
+        <span><kbd>R</kbd> 重置视角</span>
+        <span><kbd>L</kbd> 标注开关</span>
+        <span><kbd>1—9</kbd> 选择部件</span>
+      </div>
+      <button class="modal-primary" id="guideStart" type="button"><span>开始探索</span><i>ENTER</i></button>
+    </div>
+  </div>
+
+  <script src="./vendor/three.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
